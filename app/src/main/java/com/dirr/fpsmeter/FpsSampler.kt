@@ -21,7 +21,8 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
     private val prev = HashMap<String, Long>()
     private val skip = arrayOf(
         "StatusBar", "NavigationBar", "ScreenDecor", "Wallpaper", "InputMethod", "systemui",
-        "DockedStackDivider", "Splash Screen", "ShellDropTarget", "Bounds for", "Background for"
+        "DockedStackDivider", "Splash Screen", "ShellDropTarget", "Bounds for", "Background for",
+        "control_center", "com.miui", "esture", "ScreenRecord"
     )
 
     fun sample(): Int {
@@ -44,6 +45,8 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
         var cur: String? = null
         var bestName: String? = null
         var bestD = -1L
+        var svName: String? = null
+        var svD = 0L
         var n = 0
         for (line in txt.lineSequence()) {
             val t = line.trim()
@@ -57,10 +60,15 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
                 val total = t.substring(14).toLongOrNull() ?: continue
                 n++
                 val p = prev.put(c, total)
-                if (p != null && total >= p && total - p > bestD) { bestD = total - p; bestName = c }
+                if (p != null && total >= p) {
+                    val d = total - p
+                    if (d > bestD) { bestD = d; bestName = c }
+                    if (c.contains("SurfaceView") && d > svD) { svD = d; svName = c }
+                }
             }
         }
 
+        if (svName != null) { bestName = svName; bestD = svD }
         if (n == 0) {
             info = "ts kosong len=" + txt.length + " " + txt.trim().replace('\n', ' ').take(24)
             return -1

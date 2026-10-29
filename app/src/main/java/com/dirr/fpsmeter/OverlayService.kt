@@ -44,7 +44,7 @@ class OverlayService : Service() {
         val prefs = getSharedPreferences("cfg", MODE_PRIVATE)
         val wantRoot = prefs.getBoolean("root", false)
         debug = prefs.getBoolean("debug", true)
-        addOverlay(prefs.getInt("corner", 0))
+        addOverlay(prefs.getInt("corner", 0), prefs.getInt("alpha", 60).coerceIn(20, 80) / 100f)
 
         val t = HandlerThread("fpsmeter").also { it.start() }
         thread = t
@@ -114,15 +114,15 @@ class OverlayService : Service() {
         return (x / 10).toString() + "." + (x % 10)
     }
 
-    private fun addOverlay(corner: Int) {
+    private fun addOverlay(corner: Int, alpha: Float) {
         val w = getSystemService(WindowManager::class.java)
         wm = w
         val d = resources.displayMetrics.density
         val v = TextView(this).apply {
             typeface = Typeface.MONOSPACE
-            textSize = 11f
+            textSize = 10.5f
             setTextColor(Color.rgb(0, 255, 120))
-            setBackgroundColor(0x99000000.toInt())
+            setBackgroundColor(0x66000000)
             val p = (6 * d).toInt()
             setPadding(p, p, p, p)
             text = "FPS --"
@@ -141,9 +141,14 @@ class OverlayService : Service() {
             1 -> Gravity.TOP or Gravity.END
             2 -> Gravity.BOTTOM or Gravity.START
             3 -> Gravity.BOTTOM or Gravity.END
+            4 -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            5 -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             else -> Gravity.TOP or Gravity.START
         }
-        lp.x = (8 * d).toInt(); lp.y = (8 * d).toInt()
+        lp.x = if (corner >= 4) 0 else (8 * d).toInt()
+        lp.y = (8 * d).toInt()
+        // Android 12: overlay dengan alpha > 0.8 memblokir sentuhan ke aplikasi di bawahnya
+        lp.alpha = alpha
         lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         w.addView(v, lp)
         tv = v

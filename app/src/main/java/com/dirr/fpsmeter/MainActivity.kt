@@ -12,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 
@@ -73,9 +74,29 @@ class MainActivity : Activity() {
         }
         col.addView(diag)
 
+        val opLabel = label("")
+        fun opText(p: Int) { opLabel.text = "Opasitas overlay: " + p + "% (maks 80%, batas Android 12 supaya sentuhan tembus ke game)" }
+        val cur = prefs.getInt("alpha", 60).coerceIn(20, 80)
+        opText(cur)
+        col.addView(opLabel)
+        col.addView(SeekBar(this).apply {
+            max = 60
+            progress = cur - 20
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(s: SeekBar?, p: Int, u: Boolean) {
+                    opText(p + 20); prefs.edit().putInt("alpha", p + 20).apply()
+                }
+                override fun onStartTrackingTouch(s: SeekBar?) {}
+                override fun onStopTrackingTouch(s: SeekBar?) {}
+            })
+        })
+
         col.addView(label("Posisi overlay"))
         val rg = RadioGroup(this)
-        arrayOf("Kiri atas", "Kanan atas", "Kiri bawah", "Kanan bawah").forEachIndexed { i, n ->
+        arrayOf(
+            0 to "Kiri atas", 4 to "Tengah atas", 1 to "Kanan atas",
+            2 to "Kiri bawah", 5 to "Tengah bawah", 3 to "Kanan bawah"
+        ).forEach { (i, n) ->
             rg.addView(RadioButton(this).apply { text = n; id = 100 + i })
         }
         rg.check(100 + prefs.getInt("corner", 0))
