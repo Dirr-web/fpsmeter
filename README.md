@@ -22,6 +22,6 @@ satu proses shell yang hidup terus, sampling 1x/detik, berhenti sendiri saat lay
 - Mode root (su) membuka semua path di atas.
 
 ## Catatan FPS
-Ada dua metode, otomatis: `--latency` dulu, kalau kosong (umum di Android 12) pindah ke `--timestats`.
-Baris `[...]` di bawah overlay adalah info debug (matikan lewat switch di aplikasi kalau sudah jalan normal).
-FPS hanya terukur untuk aplikasi lain, jadi buka game dulu (aplikasi ini sendiri statis, FPS-nya 0/--).
+FPS dihitung dari `dumpsys SurfaceFlinger --timestats` (pertambahan jumlah frame per detik pada layer paling aktif),
+jadi tidak perlu mendeteksi aplikasi di depan. Baris `[...]` di bawah overlay = info debug (nama layer yang diukur).
+Tombol "Diagnosa" menyimpan output mentah perintah untuk dikirim kalau FPS masih `--`.

@@ -18,6 +18,7 @@ import android.widget.TextView
 class MainActivity : Activity() {
 
     private lateinit var status: TextView
+    private lateinit var diag: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +63,16 @@ class MainActivity : Activity() {
             setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean("debug", c).apply() }
         })
 
+        col.addView(Button(this).apply {
+            text = "Diagnosa (nyalakan overlay, tekan ini, buka game)"
+            setOnClickListener { runDiag() }
+        })
+        diag = label(prefs.getString("diag", "") ?: "", 10f).apply {
+            typeface = Typeface.MONOSPACE
+            setTextIsSelectable(true)
+        }
+        col.addView(diag)
+
         col.addView(label("Posisi overlay"))
         val rg = RadioGroup(this)
         arrayOf("Kiri atas", "Kanan atas", "Kiri bawah", "Kanan bawah").forEachIndexed { i, n ->
@@ -91,6 +102,28 @@ class MainActivity : Activity() {
     }
 
     override fun onResume() { super.onResume(); refresh() }
+
+    private fun runDiag() {
+        diag.text = "Tunggu 10 detik. Buka game sekarang, main sebentar, lalu kembali ke sini."
+        Thread {
+            Thread.sleep(10000)
+            val sh = Shell(false)
+            val sb = StringBuilder()
+            val cmds = arrayOf(
+                "id",
+                "dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -n 3",
+                "dumpsys window | head -n 3",
+                "dumpsys SurfaceFlinger --list | head -n 12",
+                "dumpsys SurfaceFlinger --timestats -enable",
+                "dumpsys SurfaceFlinger --timestats -dump -maxlayers 8 | grep -E 'layerName|totalFrames' | head -n 24"
+            )
+            for (c in cmds) sb.append("$ ").append(c).append('\n').append(sh.run(c).take(700)).append('\n')
+            sh.close()
+            val out = sb.toString()
+            getSharedPreferences("cfg", MODE_PRIVATE).edit().putString("diag", out).apply()
+            runOnUiThread { diag.text = out }
+        }.start()
+    }
 
     private fun refresh() {
         val ov = Settings.canDrawOverlays(this)
