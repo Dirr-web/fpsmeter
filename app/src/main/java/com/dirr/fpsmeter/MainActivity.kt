@@ -56,6 +56,12 @@ class MainActivity : Activity() {
             setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean("root", c).apply() }
         })
 
+        col.addView(Switch(this).apply {
+            text = "Tampilkan info debug di overlay  "
+            isChecked = prefs.getBoolean("debug", true)
+            setOnCheckedChangeListener { _, c -> prefs.edit().putBoolean("debug", c).apply() }
+        })
+
         col.addView(label("Posisi overlay"))
         val rg = RadioGroup(this)
         arrayOf("Kiri atas", "Kanan atas", "Kiri bawah", "Kanan bawah").forEachIndexed { i, n ->

@@ -1,5 +1,6 @@
 package com.dirr.fpsmeter
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -16,7 +17,8 @@ class SysStats(private val ctx: Context, private val root: Shell?) {
 
     class Snap(
         val cpu: Int, val cpuEst: Boolean, val cpuMhz: Int, val cpuTemp: Int,
-        val gpu: Int, val gpuMhz: Int, val bat: Int
+        val gpu: Int, val gpuMhz: Int, val bat: Int,
+        val ramUsed: Long, val ramTotal: Long
     )
 
     private val n = Runtime.getRuntime().availableProcessors()
@@ -30,6 +32,8 @@ class SysStats(private val ctx: Context, private val root: Shell?) {
     private var pTotal = 0L
     private var pIdle = 0L
     private val batFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+    private val am = ctx.getSystemService(ActivityManager::class.java)
+    private val mi = ActivityManager.MemoryInfo()
 
     init { probe() }
 
@@ -63,7 +67,9 @@ class SysStats(private val ctx: Context, private val root: Shell?) {
         listOf(
             "/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage",
             "/sys/class/kgsl/kgsl-3d0/devfreq/gpu_load",
-            "/sys/kernel/gpu/gpu_busy"
+            "/sys/kernel/gpu/gpu_busy",
+            "/proc/mali/utilization",
+            "/sys/kernel/ged/hal/gpu_utilization"
         ).firstOrNull { works(it) }?.let { iBusy = add(it) }
 
         val clk = arrayListOf(
@@ -154,6 +160,7 @@ class SysStats(private val ctx: Context, private val root: Shell?) {
         val bi = ctx.registerReceiver(null, batFilter)
         val bat = (bi?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0) / 10
 
-        return Snap(cpu, est, mhz(topF), ct, gpu, gclk, bat)
+        am.getMemoryInfo(mi)
+        return Snap(cpu, est, mhz(topF), ct, gpu, gclk, bat, mi.totalMem - mi.availMem, mi.totalMem)
     }
 }

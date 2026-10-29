@@ -20,3 +20,8 @@ satu proses shell yang hidup terus, sampling 1x/detik, berhenti sendiri saat lay
 - CPU: `/proc/stat` kalau bisa dibaca, kalau tidak estimasi dari frekuensi (tanda `~`).
 - GPU: sysfs Adreno (kgsl) kalau ada. Chipset lain bisa tampil `--` dan perlu disesuaikan path-nya.
 - Mode root (su) membuka semua path di atas.
+
+## Catatan FPS
+Ada dua metode, otomatis: `--latency` dulu, kalau kosong (umum di Android 12) pindah ke `--timestats`.
+Baris `[...]` di bawah overlay adalah info debug (matikan lewat switch di aplikasi kalau sudah jalan normal).
+FPS hanya terukur untuk aplikasi lain, jadi buka game dulu (aplikasi ini sendiri statis, FPS-nya 0/--).

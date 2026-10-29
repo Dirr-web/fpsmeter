@@ -31,6 +31,7 @@ class OverlayService : Service() {
     private var stats: SysStats? = null
     private val sb = StringBuilder()
     @Volatile private var running = false
+    private var debug = true
 
     override fun onBind(i: Intent?): IBinder? = null
 
@@ -42,6 +43,7 @@ class OverlayService : Service() {
 
         val prefs = getSharedPreferences("cfg", MODE_PRIVATE)
         val wantRoot = prefs.getBoolean("root", false)
+        debug = prefs.getBoolean("debug", true)
         addOverlay(prefs.getInt("corner", 0))
 
         val t = HandlerThread("fpsmeter").also { it.start() }
@@ -50,7 +52,7 @@ class OverlayService : Service() {
         bg!!.post {
             val sh = openShell(wantRoot)
             shell = sh
-            fps = sh?.let { FpsSampler(it) }
+            fps = sh?.let { FpsSampler(it, packageName) }
             stats = SysStats(this, if (sh?.su == true) sh else null)
             tick.run()
         }
@@ -102,7 +104,14 @@ class OverlayService : Service() {
         if (s.gpu >= 0) b.append(s.gpu).append('%') else b.append("--")
         if (s.gpuMhz > 0) b.append(' ').append(s.gpuMhz).append("MHz")
         b.append("\nBAT ").append(s.bat).append("°C")
+        b.append("\nRAM ").append(gb(s.ramUsed)).append('/').append(gb(s.ramTotal)).append("G  free ").append(gb(s.ramTotal - s.ramUsed)).append('G')
+        if (debug) b.append("\n[").append(fps?.info ?: "tanpa shell").append(']')
         return b.toString()
+    }
+
+    private fun gb(v: Long): String {
+        val x = v * 10 / (1L shl 30)
+        return (x / 10).toString() + "." + (x % 10)
     }
 
     private fun addOverlay(corner: Int) {
