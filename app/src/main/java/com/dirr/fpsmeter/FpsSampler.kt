@@ -48,6 +48,7 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
         var svName: String? = null
         var svD = 0L
         var n = 0
+        val seen = HashMap<String, Long>()
         for (line in txt.lineSequence()) {
             val t = line.trim()
             if (t.startsWith("layerName = ")) {
@@ -59,7 +60,8 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
                 if (c.contains(ownPkg) || skip.any { c.contains(it) }) continue
                 val total = t.substring(14).toLongOrNull() ?: continue
                 n++
-                val p = prev.put(c, total)
+                seen[c] = total
+                val p = prev[c]
                 if (p != null && total >= p) {
                     val d = total - p
                     if (d > bestD) { bestD = d; bestName = c }
@@ -69,12 +71,17 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
         }
 
         if (svName != null) { bestName = svName; bestD = svD }
+        // bandingkan hanya dengan pembacaan sebelumnya (layer yang sempat hilang dari daftar tidak dihitung)
+        prev.clear(); prev.putAll(seen)
+        if (dt > 2500) { info = "ts resync"; return -1 }
         if (n == 0) {
             info = "ts kosong len=" + txt.length + " " + txt.trim().replace('\n', ' ').take(24)
             return -1
         }
         if (bestName == null || dt <= 0) { info = "ts warmup n=$n"; return -1 }
         info = bestName.substringBefore('#').takeLast(26)
-        return (bestD * 1000.0 / dt).roundToInt()
+        val fps = (bestD * 1000.0 / dt).roundToInt()
+        if (fps > 240) { info = "ts abnormal"; return -1 }
+        return fps
     }
 }
