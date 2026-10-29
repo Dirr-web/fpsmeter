@@ -49,6 +49,7 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
         var svD = 0L
         var n = 0
         val seen = HashMap<String, Long>()
+        val hadPrev = prev.isNotEmpty()
         for (line in txt.lineSequence()) {
             val t = line.trim()
             if (t.startsWith("layerName = ")) {
@@ -64,6 +65,7 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
                 val p = prev[c]
                 if (p != null && total >= p) {
                     val d = total - p
+                    if (dt > 0 && d * 1000.0 / dt > 240) continue // lonjakan tidak wajar: abaikan layer ini saja
                     if (d > bestD) { bestD = d; bestName = c }
                     if (c.contains("SurfaceView") && d > svD) { svD = d; svName = c }
                 }
@@ -78,10 +80,9 @@ class FpsSampler(private val sh: Shell, private val ownPkg: String) {
             info = "ts kosong len=" + txt.length + " " + txt.trim().replace('\n', ' ').take(24)
             return -1
         }
-        if (bestName == null || dt <= 0) { info = "ts warmup n=$n"; return -1 }
+        if (dt <= 0 || (bestName == null && !hadPrev)) { info = "ts warmup n=$n"; return -1 }
+        if (bestName == null) { info = "ts idle"; return 0 }
         info = bestName.substringBefore('#').takeLast(26)
-        val fps = (bestD * 1000.0 / dt).roundToInt()
-        if (fps > 240) { info = "ts abnormal"; return -1 }
-        return fps
+        return (bestD * 1000.0 / dt).roundToInt()
     }
 }
